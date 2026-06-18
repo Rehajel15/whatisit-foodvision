@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>What Is It? — Pizza, Steak or Sushi?</title>
+  <style>
+    :root{
+      --bg1:#fff7ed; --bg2:#ffe4e6;
+      --card:#ffffff;
+      --ink:#1f2937; --muted:#6b7280;
+      --accent:#f97316; --accent-dark:#ea580c;
+      --line:#e5e7eb; --radius:20px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      color:var(--ink); min-height:100vh;
+      display:flex; align-items:center; justify-content:center; padding:24px;
+      background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    }
+    .card{
+      width:100%; max-width:540px; background:var(--card);
+      border-radius:var(--radius); box-shadow:0 20px 50px rgba(0,0,0,.12); padding:32px;
+    }
+    header{text-align:center; margin-bottom:24px}
+    h1{margin:0 0 8px; font-size:30px; font-weight:800; letter-spacing:-.02em}
+    .subtitle{margin:0; color:var(--muted); font-size:15px; line-height:1.5}
+    .subtitle b{color:var(--ink)}
+
+    .dropzone{
+      display:block; position:relative; cursor:pointer; text-align:center;
+      border:2px dashed #fcd9b6; border-radius:16px; background:#fff7ed; padding:28px 20px;
+      transition:border-color .2s, background .2s;
+    }
+    .dropzone:hover{border-color:var(--accent); background:#fff1e0}
+    .dropzone.dragover{border-color:var(--accent); background:#ffe9d2}
+    .dz-icon{font-size:40px; margin-bottom:8px}
+    .dz-text{font-weight:600; font-size:16px}
+    .dz-hint{color:var(--muted); font-size:13px; margin-top:4px}
+    .preview{display:block; width:100%; border-radius:12px; max-height:320px; object-fit:cover}
+    .preview[hidden]{display:none}
+
+    .btn{
+      margin-top:16px; width:100%; border:0; border-radius:12px;
+      background:var(--accent); color:#fff; font-size:16px; font-weight:700;
+      padding:14px; cursor:pointer; transition:background .2s, transform .05s;
+    }
+    .btn:hover{background:var(--accent-dark)}
+    .btn:active{transform:scale(.99)}
+
+    .error{
+      margin-top:16px; padding:12px 14px; border-radius:12px; font-size:14px;
+      background:#fef2f2; color:#b91c1c; border:1px solid #fecaca;
+    }
+
+    .results{margin-top:28px; padding-top:24px; border-top:1px solid var(--line)}
+    .top-banner{
+      display:flex; align-items:center; gap:16px; padding:18px 20px; border-radius:16px;
+      background:#fafafa; border:1px solid var(--line); border-left:6px solid var(--accent);
+    }
+    .top-emoji{font-size:44px; line-height:1}
+    .top-label{font-size:22px; font-weight:800}
+    .top-conf{color:var(--muted); font-size:14px; margin-top:2px}
+    .result-image{display:block; width:100%; border-radius:14px; margin:18px 0; max-height:340px; object-fit:cover}
+
+    .bars{display:flex; flex-direction:column; gap:14px; margin-top:6px}
+    .bar-row{display:grid; grid-template-columns:104px 1fr 52px; align-items:center; gap:12px}
+    .bar-label{font-weight:600; font-size:14px; white-space:nowrap}
+    .bar-track{height:12px; background:#f1f1f3; border-radius:999px; overflow:hidden}
+    .bar-fill{height:100%; width:0; border-radius:999px; animation:grow 1s cubic-bezier(.2,.8,.2,1) forwards}
+    .bar-value{text-align:right; font-variant-numeric:tabular-nums; font-weight:700; font-size:14px; color:var(--muted)}
+    .bar-row.is-top .bar-value{color:var(--ink)}
+    @keyframes grow{from{width:0}to{width:var(--target)}}
+
+    footer{margin-top:22px; text-align:center; color:var(--muted); font-size:12px}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <header>
+      <h1>What Is It? 🍽️</h1>
+      <p class="subtitle">Upload a photo — the AI detects whether it is
+        <b>Pizza</b>, <b>Steak</b> or <b>Sushi</b>.</p>
+    </header>
+
+    <form method="post" enctype="multipart/form-data" id="upload-form">
+      {% csrf_token %}
+      <label class="dropzone" id="dropzone" for="image-input">
+        <input type="file" name="image" id="image-input" accept="image/*" capture="environment" hidden>
+        <div class="dropzone-inner" id="dropzone-prompt">
+          <div class="dz-icon">📷</div>
+          <div class="dz-text">Choose or take a photo</div>
+          <div class="dz-hint">Click, drag here, or use the camera</div>
+        </div>
+        <img id="preview" class="preview" alt="Preview" hidden>
+      </label>
+      <button type="submit" class="btn">Analyze</button>
+    </form>
+
+    {% if error %}
+      <div class="error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    {% if predictions %}
+      <section class="results">
+        <div class="top-banner" style="--accent: {{ top.color }}">
+          <div class="top-emoji">{{ top.emoji }}</div>
+          <div class="top-text">
+            <div class="top-label">It's {{ top.label }}!</div>
+            <div class="top-conf">{{ top.percent }} % confident</div>
+          </div>
+        </div>
+
+        {% if image_data_uri %}
+          <img src="{{ image_data_uri }}" class="result-image" alt="Analyzed image">
+        {% endif %}
+
+        <div class="bars">
+          {% for p in predictions %}
+            <div class="bar-row {% if p.is_top %}is-top{% endif %}">
+              <div class="bar-label">{{ p.emoji }} {{ p.label }}</div>
+              <div class="bar-track">
+                <div class="bar-fill" style="--target: {{ p.percent }}%; background: {{ p.color }};"></div>
+              </div>
+              <div class="bar-value">{{ p.percent }} %</div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    <footer>Model: EfficientNet-B0 · recognizes pizza, steak &amp; sushi only.</footer>
+  </main>
+
+  <script>
+    const input = document.getElementById('image-input');
+    const dropzone = document.getElementById('dropzone');
+    const prompt = document.getElementById('dropzone-prompt');
+    const preview = document.getElementById('preview');
+
+    function showPreview(file){
+      if(!file) return;
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+      prompt.hidden = true;
+    }
+
+    input.addEventListener('change', () => showPreview(input.files[0]));
+
+    ['dragover','dragenter'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); }));
+    ['dragleave','drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      const file = e.dataTransfer.files[0];
+      if(file){ input.files = e.dataTransfer.files; showPreview(file); }
+    });
+  </script>
+</body>
+</html>

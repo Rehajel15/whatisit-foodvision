@@ -1,0 +1,36 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+local_settings.py
+
+# Environment / secrets
+.env
+*.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*~
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
+# Note: the trained model (pizza_steak_sushi_classification_model.pth, ~16 MB)
+# is intentionally committed so the app runs straight after cloning.

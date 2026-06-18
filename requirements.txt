@@ -1,0 +1,9 @@
+# Core dependencies. Tested with Python 3.14.
+Django==6.0.6
+Pillow==12.2.0
+
+# PyTorch — minimum versions that include torchvision's EfficientNet_B0_Weights.
+# Plain `pip install` pulls the CPU build (fine for inference). For a CUDA build,
+# follow the selector at https://pytorch.org/get-started/locally/
+torch>=2.2
+torchvision>=0.17
