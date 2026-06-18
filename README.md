@@ -65,11 +65,25 @@ source venv/bin/activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Run the dev server
+# 4. Create your .env file (it is git-ignored and NOT shipped with the repo)
+#    Generate a secret key and write it in:
+python -c "from django.core.management.utils import get_random_secret_key as g; print('DJANGO_SECRET_KEY=' + g())" > .env
+
+# 5. Run the dev server
 python manage.py runserver
 ```
 
 Then open **http://127.0.0.1:8000** in your browser.
+
+> **You must create your own `.env` file** in the project root before the server
+> will start. It is intentionally not committed, so every user generates their own.
+> It needs at least:
+>
+> ```
+> DJANGO_SECRET_KEY=your-generated-secret-key
+> ```
+>
+> Django will refuse to start with a clear error if `DJANGO_SECRET_KEY` is missing.
 
 ---
 
@@ -112,8 +126,8 @@ image echoed back as a base64 data URI.
 
 ## ⚠️ Notes
 
-- Ships with **development settings** (`DEBUG = True`, hard-coded `SECRET_KEY`). For local
-  use only — do not deploy as-is.
+- Ships with **development settings** (`DEBUG = True`; `SECRET_KEY` is read from your
+  local `.env`). For local use only — do not deploy as-is.
 - The model only knows **pizza, steak, and sushi**; anything else is forced into one of
   those three classes.
 
