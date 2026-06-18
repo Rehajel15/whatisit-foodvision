@@ -13,15 +13,37 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# Load environment variables from a local .env file (if present) so secrets
+# never live in source control. Minimal parser — keeps the project dependency
+# free (no python-dotenv needed). Existing os.environ values win.
+_env_path = BASE_DIR / '.env'
+if _env_path.exists():
+    for _line in _env_path.read_text(encoding='utf-8').splitlines():
+        _line = _line.strip()
+        if not _line or _line.startswith('#') or '=' not in _line:
+            continue
+        _key, _, _val = _line.partition('=')
+        os.environ.setdefault(_key.strip(), _val.strip().strip('"').strip("'"))
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@%i*xtcu)3t&bmm4(xu_e!juj!xlzj$k^pi38jqt$z#7ybvw3f'
+# Sourced from the .env file / environment (see .env.example), never hardcoded.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY is not set. Copy .env.example to .env and set it "
+        "(generate one with: python -c "
+        '"from django.core.management.utils import get_random_secret_key as g; print(g())").'
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
